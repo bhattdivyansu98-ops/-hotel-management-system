@@ -168,6 +168,11 @@ class ApiServerTest {
             assertEquals(1, body(client.get("/api/rooms/available?checkIn=" + CHECK_IN
                     + "&checkOut=" + CHECK_OUT)).size());
             assertEquals(1, body(client.get("/api/reservations")).size());
+
+            Response payment = client.post("/api/reservations/" + reservationId + "/payments",
+                    Map.of("amount", "100.00", "cardToken", "tok_visa"));
+            assertEquals(400, payment.code());
+            assertTrue(body(payment).get("error").asText().contains("CANCELLED"));
         });
     }
 

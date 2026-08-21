@@ -5,6 +5,7 @@ import com.divyanshu.hotel.dao.ReservationDao;
 import com.divyanshu.hotel.domain.Payment;
 import com.divyanshu.hotel.domain.PaymentStatus;
 import com.divyanshu.hotel.domain.Reservation;
+import com.divyanshu.hotel.domain.ReservationStatus;
 import com.divyanshu.hotel.exception.NotFoundException;
 import com.divyanshu.hotel.exception.ValidationException;
 import com.divyanshu.hotel.payment.ChargeRequest;
@@ -108,6 +109,29 @@ class PaymentServiceTest {
         assertThrows(ValidationException.class, () -> service.pay(3L, new BigDecimal("300.00"), "tok_visa"));
         assertThrows(ValidationException.class, () -> service.pay(3L, BigDecimal.ZERO, "tok_visa"));
         assertThrows(ValidationException.class, () -> service.pay(3L, null, "tok_visa"));
+        verify(gateway, never()).charge(any());
+    }
+
+    @Test
+    void rejectsPaymentsOnClosedReservations() {
+        Reservation cancelled = reservationWithBalance("2000.00", "0.00");
+        cancelled.setStatus(ReservationStatus.CANCELLED);
+
+        ValidationException error = assertThrows(ValidationException.class,
+                () -> service.pay(3L, new BigDecimal("2000.00"), "tok_visa"));
+
+        assertTrue(error.getMessage().contains("CANCELLED"));
+        verify(gateway, never()).charge(any());
+        verify(paymentDao, never()).insert(any());
+        verify(reservationDao, never()).addPayment(anyLong(), any());
+    }
+
+    @Test
+    void rejectsPaymentsOnCheckedOutReservations() {
+        Reservation checkedOut = reservationWithBalance("2000.00", "0.00");
+        checkedOut.setStatus(ReservationStatus.CHECKED_OUT);
+
+        assertThrows(ValidationException.class, () -> service.pay(3L, new BigDecimal("10.00"), "tok_visa"));
         verify(gateway, never()).charge(any());
     }
 

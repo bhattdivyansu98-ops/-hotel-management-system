@@ -70,7 +70,8 @@ async function loadReservations() {
     .map((reservation) => {
       const room = rooms.get(reservation.roomId);
       const guest = guests.get(reservation.guestId);
-      const due = Number(reservation.totalAmount) - Number(reservation.paidAmount);
+      const closed = reservation.status === "CANCELLED" || reservation.status === "CHECKED_OUT";
+      const due = closed ? 0 : Number(reservation.totalAmount) - Number(reservation.paidAmount);
       return `<tr>
         <td>${reservation.id}</td>
         <td>${guest ? guest.fullName : reservation.guestId}</td>
@@ -83,6 +84,7 @@ async function loadReservations() {
           ${due > 0 ? `<button data-pay="${reservation.id}" data-due="${due}">Pay</button>` : ""}
           ${reservation.status === "CONFIRMED" ? `<button class="ghost" data-checkin="${reservation.id}">Check in</button>` : ""}
           ${reservation.status === "CHECKED_IN" ? `<button class="ghost" data-checkout="${reservation.id}">Check out</button>` : ""}
+          ${closed || reservation.status === "CHECKED_IN" ? "" : `<button class="ghost" data-cancel="${reservation.id}">Cancel</button>`}
           <button class="ghost" data-invoice="${reservation.id}">Invoice</button>
         </td>
       </tr>`;
@@ -188,6 +190,7 @@ document.getElementById("searchForm").addEventListener("submit", (event) => {
     const params = new URLSearchParams(state.stay);
     if (form.get("type")) params.set("type", form.get("type"));
     renderAvailableRooms(await api.get(`/api/rooms/available?${params}`));
+    await refresh();
   });
 });
 
@@ -230,7 +233,7 @@ document.getElementById("bookingForm").addEventListener("submit", (event) => {
 document.querySelector("#reservationTable tbody").addEventListener("click", (event) => {
   const button = event.target.closest("button");
   if (!button) return;
-  const { pay, due, checkin, checkout, invoice } = button.dataset;
+  const { pay, due, checkin, checkout, cancel, invoice } = button.dataset;
   if (pay) showPaymentForm(pay, Number(due));
   if (invoice) guard(() => showInvoice(invoice));
   if (checkin) guard(async () => {
@@ -241,6 +244,11 @@ document.querySelector("#reservationTable tbody").addEventListener("click", (eve
   if (checkout) guard(async () => {
     await api.post(`/api/reservations/${checkout}/check-out`);
     toast(`Reservation #${checkout} checked out`);
+    await refresh();
+  });
+  if (cancel) guard(async () => {
+    await api.post(`/api/reservations/${cancel}/cancel`);
+    toast(`Reservation #${cancel} cancelled`);
     await refresh();
   });
 });

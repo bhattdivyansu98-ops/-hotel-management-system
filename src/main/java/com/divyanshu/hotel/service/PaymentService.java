@@ -41,6 +41,10 @@ public class PaymentService {
     public Payment pay(long reservationId, BigDecimal amount, String cardToken) {
         Reservation reservation = reservationDao.findById(reservationId)
                 .orElseThrow(() -> NotFoundException.of("reservation", reservationId));
+        if (reservation.getStatus().isClosed()) {
+            throw new ValidationException("reservation " + reservationId + " is "
+                    + reservation.getStatus() + " and cannot take payments");
+        }
         if (amount == null || amount.signum() <= 0) {
             throw new ValidationException("payment amount must be positive");
         }

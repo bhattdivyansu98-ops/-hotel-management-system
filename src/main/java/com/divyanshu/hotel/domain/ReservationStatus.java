@@ -17,6 +17,11 @@ public enum ReservationStatus {
         return BLOCKING.contains(this);
     }
 
+    /** Closed stays: no further transitions and no money may move. */
+    public boolean isClosed() {
+        return this == CHECKED_OUT || this == CANCELLED;
+    }
+
     public boolean canTransitionTo(ReservationStatus target) {
         return switch (this) {
             case PENDING -> target == CONFIRMED || target == CANCELLED;
