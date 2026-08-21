@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grand Vista — Hotel Management</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">GV</span>
+    <div>
+      <h1>Grand Vista</h1>
+      <p>Hotel Management Console</p>
+    </div>
+  </div>
+  <div class="gateway" id="gatewayBadge">payments: —</div>
+</header>
+
+<main>
+  <section class="stats" id="stats"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Availability &amp; booking</h2>
+      <p>Pick your dates, then book an available room for a registered guest.</p>
+    </div>
+    <form id="searchForm" class="grid grid-4">
+      <label>Check-in<input type="date" name="checkIn" required /></label>
+      <label>Check-out<input type="date" name="checkOut" required /></label>
+      <label>Room type
+        <select name="type">
+          <option value="">Any</option>
+          <option value="SINGLE">Single</option>
+          <option value="DOUBLE">Double</option>
+          <option value="DELUXE">Deluxe</option>
+          <option value="SUITE">Suite</option>
+        </select>
+      </label>
+      <button type="submit">Search rooms</button>
+    </form>
+    <div id="availableRooms" class="room-grid"></div>
+  </section>
+
+  <section class="two-col">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Register guest</h2>
+        <p>Guests must exist before a booking can be made.</p>
+      </div>
+      <form id="guestForm" class="grid">
+        <label>Full name<input name="fullName" required placeholder="Divyanshu Bhatt" /></label>
+        <label>Email<input name="email" type="email" required placeholder="guest@example.com" /></label>
+        <label>Phone<input name="phone" required placeholder="9876543210" /></label>
+        <label>ID proof<input name="idProof" placeholder="Aadhaar / Passport no." /></label>
+        <button type="submit">Register guest</button>
+      </form>
+      <ul id="guestList" class="list"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Book selected room</h2>
+        <p id="selectedRoomLabel">No room selected yet.</p>
+      </div>
+      <form id="bookingForm" class="grid">
+        <label>Guest
+          <select name="guestId" required></select>
+        </label>
+        <label>Guests<input name="guests" type="number" min="1" value="2" required /></label>
+        <button type="submit" id="bookButton" disabled>Confirm booking</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Reservations</h2>
+      <p>Check in, take payment, print the invoice and check out.</p>
+    </div>
+    <div class="table-wrap">
+      <table id="reservationTable">
+        <thead>
+        <tr>
+          <th>#</th><th>Guest</th><th>Room</th><th>Stay</th><th>Status</th>
+          <th>Total</th><th>Paid</th><th>Actions</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
