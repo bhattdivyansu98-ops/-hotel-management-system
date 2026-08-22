@@ -117,6 +117,7 @@ main { padding: 28px 32px 60px; display: grid; gap: 22px; max-width: 1200px; mar
 
 .two-col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 22px; }
 
+[hidden] { display: none !important; }
 .grid { display: grid; gap: 12px; }
 .grid-4 { grid-template-columns: repeat(4, 1fr); align-items: end; }
 
@@ -183,7 +184,6 @@ td .row-actions { display: flex; gap: 6px; }
 td button { padding: 6px 10px; font-size: 12px; }
 
 .modal { position: fixed; inset: 0; background: rgba(6, 9, 16, 0.72); display: grid; place-items: center; z-index: 20; }
-.modal[hidden] { display: none; }
 .modal-card {
   background: var(--panel);
   border: 1px solid var(--line);
