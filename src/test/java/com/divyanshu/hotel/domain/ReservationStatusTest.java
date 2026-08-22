@@ -40,4 +40,13 @@ class ReservationStatusTest {
         assertFalse(ReservationStatus.CANCELLED.blocksInventory());
         assertEquals(3, ReservationStatus.BLOCKING.size());
     }
+
+    @Test
+    void onlyCheckedOutAndCancelledAreClosed() {
+        assertTrue(ReservationStatus.CHECKED_OUT.isClosed());
+        assertTrue(ReservationStatus.CANCELLED.isClosed());
+        assertFalse(ReservationStatus.PENDING.isClosed());
+        assertFalse(ReservationStatus.CONFIRMED.isClosed());
+        assertFalse(ReservationStatus.CHECKED_IN.isClosed());
+    }
 }

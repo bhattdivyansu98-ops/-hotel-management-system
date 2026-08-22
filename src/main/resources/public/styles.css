@@ -149,6 +149,7 @@ td .row-actions { display: flex; gap: 6px; }
 td button { padding: 6px 10px; font-size: 12px; }
 
 .modal { position: fixed; inset: 0; background: rgba(6, 9, 16, 0.72); display: grid; place-items: center; z-index: 20; }
+.modal[hidden] { display: none; }
 .modal-card {
   background: var(--panel);
   border: 1px solid var(--line);
