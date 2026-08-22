@@ -7,7 +7,14 @@ import com.divyanshu.hotel.support.TestDatabase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
+import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.JavalinTest;
+import io.javalin.testtools.TestCase;
+import io.javalin.testtools.TestConfig;
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
 import okhttp3.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,9 +22,13 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,9 +51,32 @@ class ApiServerTest {
         return MAPPER.readTree(response.body().string());
     }
 
+    /** Runs a test against a client that keeps cookies, so a login carries the session forward. */
+    private void runServer(TestCase testCase) {
+        Map<String, Cookie> jar = new HashMap<>();
+        OkHttpClient client = new OkHttpClient.Builder().cookieJar(new CookieJar() {
+            @Override
+            public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                for (Cookie cookie : cookies) {
+                    if (cookie.value().isEmpty()) {
+                        jar.remove(cookie.name());
+                    } else {
+                        jar.put(cookie.name(), cookie);
+                    }
+                }
+            }
+
+            @Override
+            public List<Cookie> loadForRequest(HttpUrl url) {
+                return new ArrayList<>(jar.values());
+            }
+        }).build();
+        JavalinTest.test(app, new TestConfig(true, true, client), testCase);
+    }
+
     @Test
     void healthReportsPaymentProvider() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
             Response response = client.get("/api/health");
             assertEquals(200, response.code());
             JsonNode json = body(response);
@@ -52,8 +86,51 @@ class ApiServerTest {
     }
 
     @Test
+    void protectedRoutesRequireASession() {
+        runServer((server, client) -> {
+            assertEquals(401, client.get("/api/reservations").code());
+            assertEquals(401, client.get("/api/stats").code());
+            assertEquals(401, client.get("/api/auth/me").code());
+            assertEquals(401, client.post("/api/guests", Map.of(
+                    "fullName", "Walk In", "email", "walk@example.com",
+                    "phone", "9876500001", "idProof", "PAN")).code());
+        });
+    }
+
+    @Test
+    void signupCreatesAnAdminAndLoginOpensASession() {
+        runServer((server, client) -> {
+            Response signup = client.post("/api/auth/signup", Map.of(
+                    "username", "Frontdesk", "fullName", "Front Desk", "password", "hotel-pass-1"));
+            assertEquals(201, signup.code());
+            JsonNode created = body(signup);
+            assertEquals("frontdesk", created.get("username").asText());
+            assertEquals("ADMIN", created.get("role").asText());
+            assertFalse(created.has("passwordHash"));
+
+            assertEquals(400, client.post("/api/auth/signup", Map.of(
+                    "username", "frontdesk", "fullName", "Copy Cat", "password", "hotel-pass-1")).code());
+            assertEquals(400, client.post("/api/auth/signup", Map.of(
+                    "username", "night", "fullName", "Night Desk", "password", "short")).code());
+            assertEquals(401, client.post("/api/auth/login", Map.of(
+                    "username", "frontdesk", "password", "wrong-password")).code());
+
+            assertEquals(200, client.post("/api/auth/login", Map.of(
+                    "username", "frontdesk", "password", "hotel-pass-1")).code());
+            assertEquals("Front Desk", body(client.get("/api/auth/me")).get("fullName").asText());
+            assertEquals("STAFF", body(client.post("/api/auth/signup", Map.of(
+                    "username", "night", "fullName", "Night Desk", "password", "hotel-pass-2")))
+                    .get("role").asText());
+
+            assertEquals(204, client.post("/api/auth/logout").code());
+            assertEquals(401, client.get("/api/auth/me").code());
+        });
+    }
+
+    @Test
     void fullBookingAndPaymentFlow() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             Response guestResponse = client.post("/api/guests", Map.of(
                     "fullName", "Divyanshu Bhatt",
                     "email", "guest@example.com",
@@ -106,7 +183,8 @@ class ApiServerTest {
 
     @Test
     void declinedPaymentIsReportedAndRefundReversesCapture() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             long reservationId = seedReservation(client);
 
             Response declined = client.post("/api/reservations/" + reservationId + "/payments",
@@ -126,7 +204,8 @@ class ApiServerTest {
 
     @Test
     void guestCrudEndpoints() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             long guestId = body(client.post("/api/guests", Map.of(
                     "fullName", "Asha Rao", "email", "asha@example.com",
                     "phone", "9876500000", "idProof", "PAN"))).get("id").asLong();
@@ -146,7 +225,8 @@ class ApiServerTest {
 
     @Test
     void roomStatusEndpointBlocksMaintenanceRooms() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             long roomId = body(client.post("/api/rooms", Map.of("number", "301", "type", "SUITE")))
                     .get("id").asLong();
 
@@ -160,7 +240,8 @@ class ApiServerTest {
 
     @Test
     void cancellingReleasesTheRoom() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             long reservationId = seedReservation(client);
 
             assertEquals("CANCELLED",
@@ -178,7 +259,8 @@ class ApiServerTest {
 
     @Test
     void validationErrorsMapToStatusCodes() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             assertEquals(400, client.post("/api/guests", Map.of(
                     "fullName", "", "email", "bad", "phone", "1", "idProof", "x")).code());
             assertEquals(400, client.get("/api/rooms/available").code());
@@ -194,7 +276,8 @@ class ApiServerTest {
 
     @Test
     void doubleBookingReturnsConflict() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
+            signIn(client);
             long guestId = body(client.post("/api/guests", Map.of(
                     "fullName", "Ravi Kumar", "email", "ravi@example.com",
                     "phone", "9876511111", "idProof", "PAN"))).get("id").asLong();
@@ -210,11 +293,19 @@ class ApiServerTest {
 
     @Test
     void dashboardIsServedAsStaticContent() {
-        JavalinTest.test(app, (server, client) -> {
+        runServer((server, client) -> {
             Response response = client.get("/index.html");
             assertEquals(200, response.code());
             assertTrue(response.body().string().contains("<html"));
         });
+    }
+
+    /** Registers the first (admin) account and signs it in; the test client keeps the session cookie. */
+    private static void signIn(HttpClient client) {
+        client.post("/api/auth/signup", Map.of(
+                "username", "frontdesk", "fullName", "Front Desk", "password", "hotel-pass-1"));
+        assertEquals(200, client.post("/api/auth/login", Map.of(
+                "username", "frontdesk", "password", "hotel-pass-1")).code());
     }
 
     private long seedReservation(io.javalin.testtools.HttpClient client) throws IOException {

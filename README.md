@@ -67,11 +67,27 @@ the balance back.
   3–6 nights, −10% for 7+ nights, then 12% tax.
 - Check-out requires a zero balance.
 
+## Accounts and sessions
+
+The dashboard and every `/api` route except `/api/health` and `/api/auth/*` require a
+signed-in staff account.
+
+- The first account created on an empty database becomes `ADMIN`; later ones are `STAFF`.
+- Passwords are stored as PBKDF2-HMAC-SHA256 hashes (120k iterations, per-user salt) and
+  are never returned by the API.
+- Login sets an HTTP-only `hms_session` cookie; API clients may instead send the token in
+  an `X-Session-Token` header.
+- Sessions live in memory with a 12-hour sliding expiry, so a restart signs everyone out.
+  Put the app behind HTTPS before exposing it publicly.
+
 ## API
 
 | Method | Path | Notes |
 | --- | --- | --- |
 | GET | `/api/health` | Status and active payment provider |
+| POST | `/api/auth/signup` | Register a staff account |
+| POST | `/api/auth/login`, `/api/auth/logout` | Open / close a session |
+| GET | `/api/auth/me` | The signed-in account |
 | GET/POST | `/api/guests` | List / register |
 | GET/PUT/DELETE | `/api/guests/{id}` | Fetch / update / delete |
 | GET/POST | `/api/rooms` | List / add |
@@ -85,14 +101,14 @@ the balance back.
 | POST | `/api/payments/{id}/refund` | Refund a captured payment |
 | GET | `/api/stats` | Rooms, guests, reservations, occupancy, revenue |
 
-Errors are JSON `{"error": "..."}` with `400` (validation), `404` (missing) and
-`409` (room unavailable).
+Errors are JSON `{"error": "..."}` with `400` (validation), `401` (not signed in),
+`404` (missing) and `409` (room unavailable).
 
 ## Dashboard
 
 `src/main/resources/public` holds a dependency-free HTML/CSS/JS dashboard served by the
-same process: stats, availability search, guest registration, booking, payment and
-invoice modals.
+same process: sign-in/sign-up, stats, availability search, guest registration, booking,
+payment and invoice modals.
 
 ## Tests
 
@@ -101,6 +117,6 @@ mvn -B verify          # unit + integration tests, JaCoCo report and coverage ga
 open target/site/jacoco/index.html
 ```
 
-136 tests cover domain rules, pricing, services (Mockito), JDBC DAOs and the REST API
+158 tests cover domain rules, authentication, pricing, services (Mockito), JDBC DAOs and the REST API
 (H2 in MySQL mode), the payment gateways and the CLI. `mvn verify` fails below 85%
 instruction coverage.

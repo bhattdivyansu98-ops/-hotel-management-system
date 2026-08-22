@@ -25,4 +25,10 @@ public final class Requests {
 
     public record PaymentRequest(BigDecimal amount, String cardToken) {
     }
+
+    public record SignupRequest(String username, String fullName, String password) {
+    }
+
+    public record LoginRequest(String username, String password) {
+    }
 }

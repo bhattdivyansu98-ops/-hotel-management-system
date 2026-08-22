@@ -5,6 +5,10 @@ const api = {
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     });
+    if (response.status === 401) {
+      window.location.replace("/login.html");
+      throw new Error("signed out");
+    }
     if (response.status === 204) return null;
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || `${method} ${path} failed`);
@@ -34,6 +38,11 @@ async function guard(action) {
   } catch (error) {
     toast(error.message, true);
   }
+}
+
+async function loadSession() {
+  const user = await api.get("/api/auth/me");
+  document.getElementById("userName").textContent = `${user.fullName} · ${user.role.toLowerCase()}`;
 }
 
 async function loadStats() {
@@ -263,7 +272,13 @@ const tomorrow = new Date(today.getTime() + 86400000);
 document.querySelector("input[name=checkIn]").value = today.toISOString().slice(0, 10);
 document.querySelector("input[name=checkOut]").value = tomorrow.toISOString().slice(0, 10);
 
+document.getElementById("logoutButton").addEventListener("click", () => guard(async () => {
+  await api.post("/api/auth/logout");
+  window.location.replace("/login.html");
+}));
+
 guard(async () => {
+  await loadSession();
   await loadHealth();
   await refresh();
 });

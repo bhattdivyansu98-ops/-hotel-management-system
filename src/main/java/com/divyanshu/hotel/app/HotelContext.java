@@ -5,13 +5,18 @@ import com.divyanshu.hotel.dao.GuestDao;
 import com.divyanshu.hotel.dao.PaymentDao;
 import com.divyanshu.hotel.dao.ReservationDao;
 import com.divyanshu.hotel.dao.RoomDao;
+import com.divyanshu.hotel.dao.UserDao;
 import com.divyanshu.hotel.dao.jdbc.JdbcGuestDao;
 import com.divyanshu.hotel.dao.jdbc.JdbcPaymentDao;
 import com.divyanshu.hotel.dao.jdbc.JdbcReservationDao;
 import com.divyanshu.hotel.dao.jdbc.JdbcRoomDao;
+import com.divyanshu.hotel.dao.jdbc.JdbcUserDao;
 import com.divyanshu.hotel.payment.PaymentGateway;
 import com.divyanshu.hotel.payment.SandboxPaymentGateway;
 import com.divyanshu.hotel.payment.StripePaymentGateway;
+import com.divyanshu.hotel.security.PasswordHasher;
+import com.divyanshu.hotel.security.SessionStore;
+import com.divyanshu.hotel.service.AuthService;
 import com.divyanshu.hotel.service.BillingService;
 import com.divyanshu.hotel.service.GuestService;
 import com.divyanshu.hotel.service.PaymentService;
@@ -30,6 +35,7 @@ public class HotelContext {
     private final ReservationService reservationService;
     private final BillingService billingService;
     private final PaymentService paymentService;
+    private final AuthService authService;
 
     public HotelContext(DataSource dataSource, AppConfig config) {
         this(dataSource, config, resolveGateway(config), Clock.systemDefaultZone());
@@ -47,6 +53,9 @@ public class HotelContext {
         this.reservationService = new ReservationService(reservationDao, roomDao, guestDao, pricingPolicy, clock);
         this.billingService = new BillingService(reservationDao, roomDao, guestDao, pricingPolicy);
         this.paymentService = new PaymentService(paymentDao, reservationDao, gateway, config.currency());
+
+        UserDao userDao = new JdbcUserDao(dataSource);
+        this.authService = new AuthService(userDao, new PasswordHasher(), new SessionStore());
     }
 
     static PaymentGateway resolveGateway(AppConfig config) {
@@ -76,5 +85,9 @@ public class HotelContext {
 
     public PaymentService payments() {
         return paymentService;
+    }
+
+    public AuthService auth() {
+        return authService;
     }
 }

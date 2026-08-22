@@ -56,7 +56,41 @@ body {
   color: var(--muted);
 }
 
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.user-chip { font-size: 13px; color: var(--muted); }
+
 main { padding: 28px 32px 60px; display: grid; gap: 22px; max-width: 1200px; margin: 0 auto; }
+
+.auth-shell { display: grid; place-items: center; min-height: 100vh; padding: 24px; max-width: none; }
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+}
+
+.auth-brand { display: flex; align-items: center; gap: 14px; }
+.auth-brand h1 { margin: 0; font-size: 20px; }
+.auth-brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+.auth-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
+.auth-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 8px 4px;
+}
+.auth-tab.active { color: var(--text); border-bottom-color: var(--gold); }
+
+.auth-hint { margin: 0; font-size: 12px; color: var(--muted); }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
 
