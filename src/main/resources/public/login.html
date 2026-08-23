@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — Grand Vista</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth-body">
+<main class="auth-shell">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="logo">GV</span>
+      <div>
+        <h1>Grand Vista</h1>
+        <p>Hotel Management Console</p>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" type="button">Sign in</button>
+      <button class="auth-tab" id="signupTab" type="button">Create account</button>
+    </div>
+
+    <form id="loginForm" class="grid">
+      <label>Username<input name="username" autocomplete="username" required /></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+      <button type="submit">Sign in</button>
+    </form>
+
+    <form id="signupForm" class="grid" hidden>
+      <label>Full name<input name="fullName" autocomplete="name" required /></label>
+      <label>Username<input name="username" autocomplete="username" required /></label>
+      <label>Password<input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
+      <p class="auth-hint">Minimum 8 characters. The first account created becomes the admin.</p>
+      <button type="submit">Create account</button>
+    </form>
+  </div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+<script src="login.js"></script>
+</body>
+</html>

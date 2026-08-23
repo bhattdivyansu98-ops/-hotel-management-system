@@ -1,5 +1,14 @@
 -- Portable schema: runs on MySQL 8 and on H2 in MySQL compatibility mode (tests).
 
+CREATE TABLE IF NOT EXISTS users (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username      VARCHAR(30)  NOT NULL UNIQUE,
+    full_name     VARCHAR(120) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role          VARCHAR(10)  NOT NULL DEFAULT 'STAFF',
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS guests (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
     full_name   VARCHAR(120) NOT NULL,
